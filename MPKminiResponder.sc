@@ -2,10 +2,11 @@ MPKminiResponder {
   var <parent,
       <id,
       <name,
-      <proxy,
+      //<proxy,
       <offset,
       <>settings,
       <controls,
+      <audioFunc,
       <toggleFunc,
       <volumeFunc,
       <controlsFunc,
@@ -23,9 +24,13 @@ MPKminiResponder {
     offset = aOffset;
     parent = aParent;
 
-    proxy = parent.proxyspace.at(name);
+    //proxy = parent.proxyspace.at(name);
+
     settings = parent.settings;
-    controls = proxy.controlKeys.copyRange(0, 7);
+    // #1 - store controls –> store audio func as String
+    controls = parent.funcDict[name].argNames.copyRange(0, 7);
+
+    audioFunc = parent.funcDict[name].asCompileString;
     this.initToggleFunc();
     this.initLearnsFunc();
     this.initVolumeFunc();
@@ -35,11 +40,14 @@ MPKminiResponder {
   initToggleFunc {
     toggleFunc = MIDIFunc.cc({ |val|
       if (val > 0, {
-        proxy.play;
+        parent.proxyspace[name].source_(audioFunc.interpret);
+        parent.proxyspace[name].play;
         this.debug("%> play".format(name))
       }, {
-        proxy.stop;
-        this.debug("%> stop".format(name))
+        if (parent.proxyspace[name].monitor.isPlaying, {
+          parent.proxyspace[name].clear();
+          this.debug("%> stop".format(name))
+        })
       });
     }, settings["pads1"][id - 1])
   }
@@ -55,7 +63,7 @@ MPKminiResponder {
   initVolumeFunc {
     volumeFunc = MIDIFunc.cc({ |val|
       if (parent.hasLearnActive().not, {
-        proxy.vol_(val / 127);
+        parent.proxyspace[name].vol_(val / 127);
         this.debug("%> vol %".format(name, val.round(0.01)))
       });
     }, settings["knobs"][id - 1])
@@ -72,7 +80,7 @@ MPKminiResponder {
         if (offset > 0, { controlIndex = controlIndex + 1 - offset });
         control = controls[controlIndex];
         spec = control.asSpec ? [0, 127].asSpec;
-        proxy.set(control, spec.map(val / 127));
+        parent.proxyspace[name].set(control, spec.map(val / 127));
         this.debug("%> % %".format(name, control, spec.map(val / 127).round(0.01)));
       })
     }, ids)

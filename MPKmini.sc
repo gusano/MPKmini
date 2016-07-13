@@ -2,14 +2,15 @@ MPKmini {
   classvar <>debug = true;
 
   var <proxyspace,
+      <funcDict,
       <responders,
       <>globalLearnMode,
       <settings,
       <settingsFile,
       <mandatorySettings;
 
-  *new { |proxyspace, settingsFile|
-    ^super.newCopyArgs(proxyspace, settingsFile).init();
+  *new { |proxyspace, funcDict, settingsFile|
+    ^super.newCopyArgs(proxyspace, funcDict, settingsFile).init();
   }
 
   init {
@@ -33,7 +34,7 @@ MPKmini {
   }
 
   map { |node, index, offset|
-    var resp, name, controls, nodeData = ();
+    var resp, name;
 
     name = this.prFixNodeName(node);
     offset = offset ? 0;
