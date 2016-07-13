@@ -1,0 +1,11 @@
+# Knobs MIDI cc for proxies volume
+knobs: [1, 2, 3, 4, 5, 6, 7, 8]
+
+# Pads MIDI cc for proxies on/off
+pads1: [13, 14, 15, 16, 9, 10, 11, 12]
+
+# Pads MIDI cc for proxies controls
+pads2: [21, 22, 23, 24, 17, 18, 19, 20]
+
+# Keyboard notes
+notes: []
