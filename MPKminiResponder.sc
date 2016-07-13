@@ -1,4 +1,6 @@
 MPKminiResponder {
+  classvar <>debug = true;
+
   var <parent,
       <id,
       <name,
@@ -131,6 +133,6 @@ MPKminiResponder {
 
   // @private
   debug { |...args|
-    args.postcs;
+    this.class.debug.if { args.postcs }
   }
 }

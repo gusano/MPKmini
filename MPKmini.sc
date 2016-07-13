@@ -20,7 +20,7 @@ MPKmini {
     globalLearnMode = Array.newClear(8);
     responders = ();
     settings = ();
-    settingsFile = settingsFile? 'settings.yaml';
+    settingsFile = settingsFile ? 'settings.yaml';
     this.loadSettingsFile(settingsFile);
   }
 
