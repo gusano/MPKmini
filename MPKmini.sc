@@ -1,16 +1,15 @@
 MPKmini {
   classvar <>debug = true;
 
-  var <proxyspace,
-      <funcDict,
+  var <dict,
       <responders,
       <>globalLearnMode,
       <settings,
       <settingsFile,
       <mandatorySettings;
 
-  *new { |proxyspace, funcDict, settingsFile|
-    ^super.newCopyArgs(proxyspace, funcDict, settingsFile).init();
+  *new { |dict, settingsFile|
+    ^super.newCopyArgs(dict, settingsFile).init();
   }
 
   init {
@@ -22,6 +21,7 @@ MPKmini {
     settings = ();
     settingsFile = settingsFile ? 'settings.yaml';
     this.loadSettingsFile(settingsFile);
+    this.addSynthDefs();
   }
 
   // All volume knobs are desactivated if at least one proxy is in learn mode
@@ -33,17 +33,35 @@ MPKmini {
     responders.keys.do(_.free())
   }
 
-  map { |node, index, offset|
-    var resp, name;
+  map { |name, index, offset = 0|
+    var resp = MPKminiResponder.new(index, name, offset, this);
 
-    name = this.prFixNodeName(node);
-    offset = offset ? 0;
-
-    resp = MPKminiResponder.new(index, name, offset, this);
     if (responders.includesKey(name), {
       responders[name].free()
     });
     responders.add(name -> resp);
+  }
+
+  addSynthDefs {
+    dict.keysValuesDo { |name, func|
+      this.wrapSynthDef(name, func)
+    }
+  }
+
+  wrapSynthDef { |name, func|
+    var sDef = SynthDef(name, { |out=0, vol=0|
+      var snd, volMap;
+
+      volMap = { |volume|
+        if (volume == 0, {
+          0
+        }, {
+          ((vol).log2 * 12).dbamp
+        })
+      };
+      snd = SynthDef.wrap(func);
+      Out.ar(out, snd * volMap.(vol));
+    }).add;
   }
 
   loadSettingsFile { |file|

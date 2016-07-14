@@ -4,13 +4,12 @@ MPKminiResponder {
   var <parent,
       <id,
       <name,
-      //<proxy,
+      <synth,
       <offset,
       <>settings,
       <controls,
       <currentVol,
       <currentValues,
-      <audioFunc,
       <toggleFunc,
       <volumeFunc,
       <controlsFunc,
@@ -28,14 +27,11 @@ MPKminiResponder {
     offset = aOffset;
     parent = aParent;
 
-    //proxy = parent.proxyspace.at(name);
-
     settings = parent.settings;
-    // #1 - store controls –> store audio func as String
-    controls = parent.funcDict[name].argNames.copyRange(0, 7);
+    controls = this.getControls();
+    //controls = parent.dict[name].argNames.copyRange(0, 7);
     currentValues = ();
 
-    audioFunc = parent.funcDict[name].asCompileString;
     this.initToggleFunc();
     this.initLearnsFunc();
     this.initVolumeFunc();
@@ -44,24 +40,16 @@ MPKminiResponder {
 
   initToggleFunc {
     toggleFunc = MIDIFunc.cc({ |val|
+
       if (val > 0, {
-        parent.proxyspace[name].source_(audioFunc.interpret);
-
-        if (currentValues.size > 0, {
-          this.recallValues();
-        });
-        if (currentVol.notNil, {
-          parent.proxyspace[name].vol_(currentVol)
-        });
-
-        parent.proxyspace[name].play;
+        synth = Synth(name, currentValues.getPairs());
 
         this.debug("%> play".format(name))
       }, {
-        if (parent.proxyspace[name].monitor.isPlaying, {
-          parent.proxyspace[name].clear();
-          this.debug("%> stop".format(name))
-        })
+        try {
+          synth.free()
+        };
+        this.debug("%> stop".format(name))
       });
     }, settings["pads1"][id - 1])
   }
@@ -77,8 +65,8 @@ MPKminiResponder {
   initVolumeFunc {
     volumeFunc = MIDIFunc.cc({ |val|
       if (parent.hasLearnActive().not, {
-        parent.proxyspace[name].vol_(val / 127);
-        currentVol = val / 127;
+        synth.set(\vol, val / 127);
+        currentValues.add(\vol -> (val / 127));
         this.debug("%> vol %".format(name, val.round(0.01)))
       });
     }, settings["knobs"][id - 1])
@@ -97,7 +85,7 @@ MPKminiResponder {
         spec = control.asSpec ? [0, 127].asSpec;
         newValue = spec.map(val / 127);
 
-        parent.proxyspace[name].set(control, newValue);
+        synth.set(control, newValue);
         currentValues.add(control -> newValue);
 
         this.debug("%> % %".format(name, control, newValue.round(0.01)));
@@ -107,6 +95,19 @@ MPKminiResponder {
 
   recallValues {
     currentValues.keysValuesDo { |ctrl, val| parent.proxyspace[name].set(ctrl, val) }
+  }
+
+  getControls {
+    var skip, ctls;
+
+    ctls = List();
+    skip = [\out, \vol];
+
+    SynthDescLib.global.at(name).controls.do { |ctl|
+      (skip.indexOf(ctl.name).isNil).if { ctls.add(ctl.name) }
+    }
+
+    ^ctls
   }
 
   getIdsForControls {
