@@ -41,15 +41,16 @@ MPKminiResponder {
   initToggleFunc {
     toggleFunc = MIDIFunc.cc({ |val|
 
-      if (val > 0, {
+      if (val > 0 and: { synth.isNil }, {
         synth = Synth(name, currentValues.getPairs());
 
         this.debug("%> play".format(name))
       }, {
         try {
-          synth.free()
+          synth.free();
+          synth = nil;
+          this.debug("%> stop".format(name))
         };
-        this.debug("%> stop".format(name))
       });
     }, settings["pads1"][id - 1])
   }
