@@ -6,7 +6,9 @@ MPKmini {
       <>globalLearnMode,
       <settings,
       <settingsFile,
-      <mandatorySettings;
+      <mandatorySettings,
+      <midiFuncs,
+      <noteFuncs;
 
   *new { |dict, settingsFile|
     ^super.newCopyArgs(dict, settingsFile).init();
@@ -18,6 +20,8 @@ MPKmini {
     mandatorySettings = ["pads1", "pads2", "knobs", "notes"];
     globalLearnMode = Array.newClear(8);
     responders = ();
+    midiFuncs = ();
+    noteFuncs = ();
     settings = ();
     settingsFile = settingsFile ? 'settings.yaml';
     this.loadSettingsFile(settingsFile);
@@ -33,13 +37,57 @@ MPKmini {
     responders.keys.do(_.free())
   }
 
-  map { |name, index, offset = 0|
+  mapSynth { |name, index, offset = 0|
     var resp = MPKminiResponder.new(index, name, offset, this);
 
     if (responders.includesKey(name), {
       responders[name].free()
     });
     responders.add(name -> resp);
+  }
+
+  mapNote { |note, function, mode = \trigger|
+    var allowedModes = [\trigger];
+
+    if (allowedModes.indexOf(mode).isNil, {
+      "Unrecognized mode: %".format(mode).throw
+    });
+
+    switch (
+      \trigger, {
+        this.mapNoteTrigger(note, function)
+      },
+      \toggle, {
+        //this.createToggleNoteMap(note, function)
+      }
+    );
+  }
+
+  freeNote { |note|
+    var noteNum = this.getNoteNum(note);
+
+    midiFuncs[noteNum].free();
+  }
+
+  mapNoteTrigger { |note, function|
+    var midiFunc, noteNum;
+
+    noteNum = this.getNoteNum(note);
+    noteFuncs.add(noteNum -> function);
+
+    midiFunc = MIDIFunc.noteOn({ |...args|
+      noteFuncs[noteNum].value()
+    }, noteNum);
+
+    midiFuncs.add(noteNum -> midiFunc);
+  }
+
+  getNoteNum { |note|
+    if (note.isKindOf(String).not, {
+      "Note has to be a String".throw
+    });
+
+    ^note.notemidi()
   }
 
   addSynthDefs {
