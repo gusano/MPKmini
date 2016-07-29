@@ -65,10 +65,23 @@ MPKminiResponder {
 
   initVolumeFunc {
     volumeFunc = MIDIFunc.cc({ |val|
+      var newVol, oldVol;
       if (parent.hasLearnActive().not, {
-        synth.set(\vol, val / 127);
-        currentValues.add(\vol -> (val / 127));
-        this.debug("%> vol %".format(name, val.round(0.01)))
+        oldVol = currentValues[\vol];
+        newVol = val / 127;
+        [\oldVol, oldVol, \newVol, newVol].postcs;
+        // try to soft set volume
+        if (oldVol.notNil, {
+          if ((oldVol - newVol).abs <= 0.1, {
+            synth.set(\vol, newVol);
+            currentValues.add(\vol -> newVol);
+            this.debug("%> vol %".format(name, newVol.round(0.01)))
+          })
+        }, {
+          synth.set(\vol, newVol);
+          currentValues.add(\vol -> newVol);
+          this.debug("%> vol %".format(name, newVol.round(0.01)))
+        });
       });
     }, settings["knobs"][id - 1])
   }
